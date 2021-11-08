@@ -68,7 +68,7 @@ def validate(epoch, logger):
     model_out = torch.zeros(test_PhiTy.shape).cuda()
     for k in range(test_gt.shape[0]):
         with torch.no_grad():
-            model_out[k, :, :, :] = model(test_PhiTy[k].unsqueeze(0)).squeeze(0)
+            model_out[k, :, :, :] = model(test_PhiTy[k, :, :, :].unsqueeze(0)).squeeze(0)
         print(model_out[k,:,:,:].shape)
         print(test_gt[k,:,:,:].shape)
         psnr_val = torch_psnr(model_out[k, :, :, :], test_gt[k, :, :, :])
