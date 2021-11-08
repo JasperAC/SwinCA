@@ -22,7 +22,7 @@ training_path = "../Data/training/"
 validating_path = "../Data/validating/"
 mask_path = "../Data/"
 
-batch_size = 1
+batch_size = 4
 last_train = 0  # for finetune
 model_save_filename = ''  # for finetune
 max_epoch = 300
