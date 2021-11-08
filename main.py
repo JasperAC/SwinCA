@@ -68,7 +68,7 @@ def validate(epoch, logger):
     model_out = torch.zeros(test_PhiTy.shape).cuda()
     for k in range(test_gt.shape[0]):
         with torch.no_grad():
-            model_out[k, :, :, :] = model(test_PhiTy[k].unsqueeze(0))
+            model_out[k, :, :, :] = model(test_PhiTy[k].unsqueeze(0)).squeeze(0)
         psnr_val = torch_psnr(model_out[k, :, :, :], test_gt[k, :, :, :])
         ssim_val = torch_ssim(model_out[k, :, :, :], test_gt[k, :, :, :])
         psnr_list.append(psnr_val.detach().cpu().numpy())
@@ -77,8 +77,7 @@ def validate(epoch, logger):
     truth = np.transpose(test_gt.cpu().numpy(), (0, 2, 3, 1)).astype(np.float32)
     psnr_mean = np.mean(np.asarray(psnr_list))
     ssim_mean = np.mean(np.asarray(ssim_list))
-    logger.info(
-        '===> Epoch {}: validating psnr = {:.2f}, ssim = {:.3f}'.format(epoch, psnr_mean, ssim_mean))
+    logger.info('===> Epoch {}: validating psnr = {:.2f}, ssim = {:.3f}'.format(epoch, psnr_mean, ssim_mean))
     model.train()
     return (pred, truth, psnr_list, ssim_list, psnr_mean, ssim_mean)
 
