@@ -18,8 +18,8 @@ torch.backends.cudnn.benchmark = True
 if not torch.cuda.is_available():
     raise Exception('NO GPU!')
 
-training_path = "../Data/training/"
-validating_path = "../Data/validating/"
+training_path = "../Data/train/"
+validating_path = "../Data/validate/"
 mask_path = "../Data/"
 
 batch_size = 4
@@ -32,8 +32,8 @@ batch_num = int(np.floor(epoch_sam_num / batch_size))
 
 mask3d_batch = generate_masks(mask_path, batch_size)
 
-training_set = LoadTraining(training_path)
-validating_data = LoadValidation(validating_path)
+training_set = LoadTrain(training_path)
+validating_set = LoadTest(validating_path)
 model = Swin_Net().cuda()
 
 if last_train != 0:
@@ -42,12 +42,12 @@ optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, betas=(0.9, 0
 mse = torch.nn.MSELoss().cuda()
 
 
-def train(epoch, learning_rate, logger):
+def train(epoch, logger):
     epoch_loss = 0
     begin = time.time()
     for i in range(batch_num):
         gt_batch = shuffle_crop(training_set, batch_size)
-        gt = Variable(gt_batch).cuda().float()
+        gt = gt_batch.cuda().float()
         y = gen_meas_torch(gt, mask3d_batch, is_training=True)
         optimizer.zero_grad()
         model_out = model(y)
@@ -62,21 +62,22 @@ def train(epoch, learning_rate, logger):
 
 def validate(epoch, logger):
     psnr_list, ssim_list = [], []
-    test_gt = validating_data.cuda().float()
-    test_PhiTy = gen_meas_torch(test_gt, mask3d_batch, is_training=False)
+    val_num = int(len(validating_set)/batch_size)
+    pred = np.zeros(validating_set.shape)
+    truth = validating_set
     model.eval()
-    model_out = torch.zeros(test_PhiTy.shape).cuda()
-    for k in range(test_gt.shape[0]):
+    for i in range(val_num):
+        vgt_batch = validating_set[i*batch_size:(i+1)*batch_size, :, :, :]
+        vgt = vgt_batch.cuda().float()
+        vy = gen_meas_torch(vgt, mask3d_batch, is_training=False)
         with torch.no_grad():
-            model_out[k, :, :, :] = model(test_PhiTy[k, :, :, :].unsqueeze(0)).squeeze(0)
-        print(model_out[k,:,:,:].shape)
-        print(test_gt[k,:,:,:].shape)
-        psnr_val = torch_psnr(model_out[k, :, :, :], test_gt[k, :, :, :])
-        ssim_val = torch_ssim(model_out[k, :, :, :], test_gt[k, :, :, :])
-        psnr_list.append(psnr_val.detach().cpu().numpy())
-        ssim_list.append(ssim_val.detach().cpu().numpy())
-    pred = np.transpose(model_out.detach().cpu().numpy(), (0, 2, 3, 1)).astype(np.float32)
-    truth = np.transpose(test_gt.cpu().numpy(), (0, 2, 3, 1)).astype(np.float32)
+            model_out= model(vy)
+        for k in range(vgt.shape[0]):
+            psnr_val = torch_psnr(model_out[k, :, :, :], vgt[k, :, :, :])
+            ssim_val = torch_ssim(model_out[k, :, :, :], vgt[k, :, :, :])
+            psnr_list.append(psnr_val.detach().cpu().numpy())
+            ssim_list.append(ssim_val.detach().cpu().numpy())
+        pred[i*batch_size:i*(batch_size+1), :, :, :] = model_out.detach().cpu().numpy().astype(np.float32)
     psnr_mean = np.mean(np.asarray(psnr_list))
     ssim_mean = np.mean(np.asarray(ssim_list))
     logger.info('===> Epoch {}: validating psnr = {:.2f}, ssim = {:.3f}'.format(epoch, psnr_mean, ssim_mean))
@@ -107,7 +108,7 @@ def main(learning_rate):
     psnr_max = 0
 
     for epoch in range(last_train + 1, last_train + max_epoch + 1):
-        train(epoch, learning_rate, logger)
+        train(epoch, logger)
         (pred, truth, psnr_all, ssim_all, psnr_mean, ssim_mean) = validate(epoch, logger)
 
         if psnr_mean > psnr_max:

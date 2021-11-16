@@ -17,7 +17,7 @@ if not torch.cuda.is_available():
     raise Exception('NO GPU!')
 
 mask_path = "./Data"
-test_path = "./Data/testing/"
+test_path = "./Data/test/"
 batch_size = 1
 last_train = 80                        
 model_save_filename = 'model'

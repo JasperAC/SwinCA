@@ -6,12 +6,13 @@ import math
 import torch
 import logging
 from ssim_torch import ssim
+import h5py
 
 
 def generate_masks(mask_path, batch_size):
     mask = sio.loadmat(mask_path + 'mask.mat')
-    mask = mask['mask']
-    mask3d = np.tile(mask[:, :, np.newaxis], (1, 1, 28))
+    mask = mask['mask128']
+    mask3d = np.tile(mask[:, :, np.newaxis], (1, 1, 31))
     mask3d = np.transpose(mask3d, [2, 0, 1])
     mask3d = torch.from_numpy(mask3d)
     [nC, H, W] = mask3d.shape
@@ -19,57 +20,36 @@ def generate_masks(mask_path, batch_size):
     return mask3d_batch
 
 
-def LoadTraining(path):
-    imgs = []
+def LoadTrain(path):
+    hsi_list = []
     scene_list = os.listdir(path)
-    scene_list.sort()
     print('training sences:', len(scene_list))
-    max_ = 0
     for i in range(len(scene_list)):
         scene_path = path + scene_list[i]
         if 'mat' not in scene_path:
             continue
-        img_dict = sio.loadmat(scene_path)
-        if "img_expand" in img_dict:
-            img = img_dict['img_expand'] / 65536.
-        elif "img" in img_dict:
-            img = img_dict['img'] / 65536.
-        img = img.astype(np.float32)
-        imgs.append(img)
+        hsi_dict = h5py.File(scene_path)
+        hsi = hsi_dict['rad']
+        hsi = hsi/np.max(hsi)
+        # hsi = hsi.astype(np.float32)
+        hsi_list.append(hsi)
         print('Sence {} is loaded. {}'.format(i, scene_list[i]))
 
-    return imgs
-
-
-def LoadValidation(path_test):
-    scene_list = os.listdir(path_test)
-    scene_list.sort()
-    print('validating sences:', len(scene_list))
-    validate_data = np.zeros((len(scene_list), 256, 256, 28))
-    for i in range(len(scene_list)):
-        scene_path = path_test + scene_list[i]
-        img_dict = sio.loadmat(scene_path)
-        if "img_expand" in img_dict:
-            img = img_dict['img_expand']
-        elif "img" in img_dict:
-            img = img_dict['img']
-        validate_data[i, :, :, :] = img[:256, :256, :]
-        print(i, img.shape, img.max(), img.min())
-    validate_data = torch.from_numpy(np.transpose(validate_data, (0, 3, 1, 2)))
-    return validate_data
+    return hsi_list
 
 
 def LoadTest(path_test):
     scene_list = os.listdir(path_test)
-    scene_list.sort()
-    test_data = np.zeros((len(scene_list), 256, 256, 28))
+    test_data = np.zeros((len(scene_list), 31, 128, 128))
     for i in range(len(scene_list)):
         scene_path = path_test + scene_list[i]
-        img = sio.loadmat(scene_path)['img']
-        # img = img/img.max()
-        test_data[i, :, :, :] = img
-        print(i, img.shape, img.max(), img.min())
-    test_data = torch.from_numpy(np.transpose(test_data, (0, 3, 1, 2)))
+        hsi_dict = h5py.File(scene_path)
+        hsi = hsi_dict['rad']
+        hsi = hsi[:, 512:640, 512:640]
+        hsi = hsi/np.max(hsi)
+        test_data[i, :, :, :] = hsi
+        print(i, hsi.shape, hsi.max(), hsi.min())
+    test_data = torch.from_numpy(test_data)
     return test_data
 
 
@@ -79,7 +59,7 @@ def psnr(img1, img2):
         total_psnr = 0
         # PIXEL_MAX = img2.max()
         PIXEL_MAX = img2[i, :, :, :].max()
-        for ch in range(28):
+        for ch in range(31):
             mse = np.mean((img1[i, :, :, ch] - img2[i, :, :, ch]) ** 2)
             total_psnr += 20 * math.log10(PIXEL_MAX / math.sqrt(mse))
         psnr_list.append(total_psnr / img1.shape[3])
@@ -113,14 +93,22 @@ def time2file_name(time):
 
 def shuffle_crop(train_data, batch_size):
     index = np.random.choice(range(len(train_data)), batch_size)
-    processed_data = np.zeros((batch_size, 256, 256, 28), dtype=np.float32)
+    processed_data = np.zeros((batch_size, 31, 128, 128), dtype=np.float32)
 
     for i in range(batch_size):
-        h, w, _ = train_data[index[i]].shape
-        x_index = np.random.randint(0, h - 256)
-        y_index = np.random.randint(0, w - 256)
-        processed_data[i, :, :, :] = train_data[index[i]][x_index:x_index + 256, y_index:y_index + 256, :]
-    gt_batch = torch.from_numpy(np.transpose(processed_data, (0, 3, 1, 2)))
+        _, h, w = train_data[index[i]].shape
+        x_index = np.random.randint(0, h - 128)
+        y_index = np.random.randint(0, w - 128)
+        processed_data[i, :, :, :] = train_data[index[i]][:, x_index:x_index + 128, y_index:y_index + 128]
+    gt_batch = torch.from_numpy(processed_data)
+    # else:
+    #     index = np.arange(times*batch_size, times*batch_size+batch_size)
+    #     processed_data = np.zeros((batch_size, 256, 256, 28), dtype=np.float32)
+    #
+    #     for i in range(batch_size):
+    #         h, w, _ = train_data[index[i]].shape
+    #         processed_data[i, :, :, :] = train_data[index[i]][512:768, 512:768, :]
+    #     gt_batch = torch.from_numpy(processed_data)
     return gt_batch
 
 
@@ -159,7 +147,7 @@ def shift(inputs, step=2):
 
 def shift_back(inputs, step=2):  # input [bs,256,310]  output [bs, 28, 256, 256]
     [bs, row, col] = inputs.shape
-    nC = 28
+    nC = 31
     output = torch.zeros(bs, nC, row, col - (nC - 1) * step).cuda().float()
     for i in range(nC):
         output[:, i, :, :] = inputs[:, :, step * i:step * i + col - (nC - 1) * step]
