@@ -107,4 +107,12 @@ import h5py
 # for i in range(10):
 #     print(ssim_TSA[0][i], ssim_SwinCA[0][i])
 
-
+path = '../Data/test/'
+def loadmatset(path):
+    list = os.listdir(path)
+    for i in list:
+        imgpath = path+i
+        if 'mat' not in imgpath:
+            continue
+        imgdict = io.loadmat(imgpath)
+        print(imgdict.keys())

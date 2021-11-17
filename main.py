@@ -77,7 +77,7 @@ def validate(epoch, logger):
             ssim_val = torch_ssim(model_out[k, :, :, :], vgt[k, :, :, :])
             psnr_list.append(psnr_val.detach().cpu().numpy())
             ssim_list.append(ssim_val.detach().cpu().numpy())
-        pred[i*batch_size:i*(batch_size+1), :, :, :] = model_out.detach().cpu().numpy().astype(np.float32)
+        pred[i*batch_size:(i+1)*batch_size, :, :, :] = model_out.detach().cpu().numpy().astype(np.float32)
     psnr_mean = np.mean(np.asarray(psnr_list))
     ssim_mean = np.mean(np.asarray(ssim_list))
     logger.info('===> Epoch {}: validating psnr = {:.2f}, ssim = {:.3f}'.format(epoch, psnr_mean, ssim_mean))
