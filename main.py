@@ -18,11 +18,11 @@ torch.backends.cudnn.benchmark = True
 if not torch.cuda.is_available():
     raise Exception('NO GPU!')
 
-training_path = "../Data/train/"
-validating_path = "../Data/validate/"
+training_path = "D:/Data/Data/train/"
+validating_path = "D:/Data/Data/validate/"
 mask_path = "../Data/"
 
-batch_size = 4
+batch_size = 2
 last_train = 0  # for finetune
 model_save_filename = ''  # for finetune
 max_epoch = 300
@@ -46,15 +46,24 @@ def train(epoch, logger):
     epoch_loss = 0
     begin = time.time()
     for i in range(batch_num):
+        begin1 = time.time()
         gt_batch = shuffle_crop(training_set, batch_size)
         gt = gt_batch.cuda().float()
         y = gen_meas_torch(gt, mask3d_batch, is_training=True)
         optimizer.zero_grad()
+        end1 = time.time()
+        print(end1 - begin1)
+        begin2 = time.time()
         model_out = model(y)
         Loss = torch.sqrt(mse(model_out, gt))
         epoch_loss += Loss.data
+        end2 = time.time()
+        print(end2 - begin2)
+        begin3 = time.time()
         Loss.backward()
         optimizer.step()
+        end3 = time.time()
+        print(end3 - begin3)
     end = time.time()
     logger.info(
         "===> Epoch {} Complete: Avg. Loss: {:.6f} time: {:.2f}".format(epoch, epoch_loss / batch_num, (end - begin)))

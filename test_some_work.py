@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import os
 import cv2
 import h5py
+import shutil
 
 # Load and generate Mask
 # mask_dict = io.loadmat('../Data/mask_old.mat')
@@ -61,8 +62,7 @@ import h5py
 #     imgs = []
 #     scene_list = os.listdir(path)
 #     scene_list.sort()
-#     print('all sences:', len(scene_list))
-#     max_ = 0
+#     # print('all sences:', len(scene_list))
 #     for i in range(len(scene_list)):
 #         scene_path = path + scene_list[i]
 #         if 'png' not in scene_path:
@@ -71,15 +71,29 @@ import h5py
 #         img = scene
 #         img = img.astype(np.float32)
 #         imgs.append(img)
-#         print('Sence {} is loaded. {}'.format(i, scene_list[i]))
+#         # print('Sence {} is loaded. {}'.format(i, scene_list[i]))
 #     return imgs
+#
+# def copyRGB(path):
+#     scene_list = os.listdir(path)
+#     for i in range(len(scene_list)):
+#         scene_path = path + scene_list[i]
+#         if 'RGB' not in scene_path:
+#             continue
+#         shutil.copy(scene_path, 'D:/Data/CAVE/AAA')
+#
 #
 # dataset_path = 'D:/Data/CAVE/'
 # dataset_list = os.listdir(dataset_path)
 # print('dataset num:', len(dataset_list))
-# for i in range(len(dataset_list)):
-#     data_path = dataset_path+dataset_list[i]+'/'+dataset_list[i]+'/'
+# for i in range(len(dataset_list)-1):
+#     data_path = dataset_path+dataset_list[i+1]+'/'+dataset_list[i+1]+'/'
+#     # copyRGB(data_path)
 #     imgs = LoadPngSet(data_path)
+#     print(np.max(imgs))
+#     print(np.min(imgs))
+#     # plt.imshow(imgs[0])
+#     # plt.show()
 
 
 # Show the reconstruction results
@@ -107,7 +121,7 @@ import h5py
 # for i in range(10):
 #     print(ssim_TSA[0][i], ssim_SwinCA[0][i])
 
-path = '../Data/test/'
+path = 'D:/Data/TSA_training_data/'
 def loadmatset(path):
     list = os.listdir(path)
     for i in list:
@@ -116,3 +130,11 @@ def loadmatset(path):
             continue
         imgdict = io.loadmat(imgpath)
         print(imgdict.keys())
+        img_expand = imgdict['img_expand']
+        # cv2.imshow('img_expand', img_expand[:, :, 0])
+        # cv2.waitKey()
+        # cv2.destroyAllWindows()
+        # plt.imshow(img_expand[:, :, 14])
+        # plt.show()
+        print(np.max(img_expand))
+loadmatset(path)
