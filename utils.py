@@ -31,7 +31,7 @@ def LoadTrain(path):
         hsi_dict = h5py.File(scene_path)
         hsi = hsi_dict['rad']
         hsi = hsi/np.max(hsi)
-        # hsi = hsi.astype(np.float32)
+        hsi = hsi.astype(np.float32)
         hsi_list.append(hsi)
         print('Sence {} is loaded. {}'.format(i, scene_list[i]))
 
