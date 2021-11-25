@@ -47,6 +47,7 @@ def LoadTest(path_test):
         hsi = hsi_dict['rad']
         hsi = hsi[:, 512:640, 512:640]
         hsi = hsi/np.max(hsi)
+        hsi = hsi.astype(np.float32)
         test_data[i, :, :, :] = hsi
         print(i, hsi.shape, hsi.max(), hsi.min())
     test_data = torch.from_numpy(test_data)
@@ -66,7 +67,7 @@ def psnr(img1, img2):
     return psnr_list
 
 
-def torch_psnr(img, ref):  # input [28,256,256]
+def torch_psnr(img, ref):  # input [31,256,256]
     nC = img.shape[0]
     pixel_max = torch.max(ref)
     psnr = 0
@@ -76,7 +77,7 @@ def torch_psnr(img, ref):  # input [28,256,256]
     return psnr / nC
 
 
-def torch_ssim(img, ref):  # input [28,256,256]
+def torch_ssim(img, ref):  # input [31,256,256]
     return ssim(torch.unsqueeze(img, 0), torch.unsqueeze(ref, 0))
 
 
@@ -101,14 +102,6 @@ def shuffle_crop(train_data, batch_size):
         y_index = np.random.randint(0, w - 128)
         processed_data[i, :, :, :] = train_data[index[i]][:, x_index:x_index + 128, y_index:y_index + 128]
     gt_batch = torch.from_numpy(processed_data)
-    # else:
-    #     index = np.arange(times*batch_size, times*batch_size+batch_size)
-    #     processed_data = np.zeros((batch_size, 256, 256, 28), dtype=np.float32)
-    #
-    #     for i in range(batch_size):
-    #         h, w, _ = train_data[index[i]].shape
-    #         processed_data[i, :, :, :] = train_data[index[i]][512:768, 512:768, :]
-    #     gt_batch = torch.from_numpy(processed_data)
     return gt_batch
 
 
