@@ -121,20 +121,20 @@ import shutil
 # for i in range(10):
 #     print(ssim_TSA[0][i], ssim_SwinCA[0][i])
 
-path = 'D:/Data/TSA_training_data/'
-def loadmatset(path):
-    list = os.listdir(path)
-    for i in list:
-        imgpath = path+i
-        if 'mat' not in imgpath:
-            continue
-        imgdict = io.loadmat(imgpath)
-        print(imgdict.keys())
-        img_expand = imgdict['img_expand']
-        # cv2.imshow('img_expand', img_expand[:, :, 0])
-        # cv2.waitKey()
-        # cv2.destroyAllWindows()
-        # plt.imshow(img_expand[:, :, 14])
-        # plt.show()
-        print(np.max(img_expand))
-loadmatset(path)
+# path = 'D:/Data/TSA_training_data/'
+# def loadmatset(path):
+#     list = os.listdir(path)
+#     for i in list:
+#         imgpath = path+i
+#         if 'mat' not in imgpath:
+#             continue
+#         imgdict = io.loadmat(imgpath)
+#         print(imgdict.keys())
+#         img_expand = imgdict['img_expand']
+#         # cv2.imshow('img_expand', img_expand[:, :, 0])
+#         # cv2.waitKey()
+#         # cv2.destroyAllWindows()
+#         # plt.imshow(img_expand[:, :, 14])
+#         # plt.show()
+#         print(np.max(img_expand))
+# loadmatset(path)
