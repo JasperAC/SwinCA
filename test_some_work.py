@@ -58,21 +58,20 @@ import shutil
 
 # Load Cave data set
 
-# def LoadPngSet(path):
-#     imgs = []
-#     scene_list = os.listdir(path)
-#     scene_list.sort()
-#     # print('all sences:', len(scene_list))
-#     for i in range(len(scene_list)):
-#         scene_path = path + scene_list[i]
-#         if 'png' not in scene_path:
-#             continue
-#         scene = plt.imread(scene_path)
-#         img = scene
-#         img = img.astype(np.float32)
-#         imgs.append(img)
-#         # print('Sence {} is loaded. {}'.format(i, scene_list[i]))
-#     return imgs
+def LoadPngSet(path):
+    imgs = []
+    scene_list = os.listdir(path)
+    scene_list.sort()
+    print('all sences:', len(scene_list))
+    for i in range(len(scene_list)):
+        scene_path = path + scene_list[i]
+        if 'png' not in scene_path:
+            continue
+        img = plt.imread(scene_path)
+        img = img.astype(np.float32)
+        imgs.append(img)
+        # print('Sence {} is loaded. {}'.format(i, scene_list[i]))
+    return imgs
 #
 # def copyRGB(path):
 #     scene_list = os.listdir(path)
@@ -84,6 +83,7 @@ import shutil
 #
 #
 # dataset_path = 'D:/Data/CAVE/'
+# dataset_path = 'D:/Data/CAVE/real_and_fake_apples_ms/real_and_fake_apples_ms/'
 # dataset_list = os.listdir(dataset_path)
 # print('dataset num:', len(dataset_list))
 # for i in range(len(dataset_list)-1):
@@ -94,6 +94,35 @@ import shutil
 #     print(np.min(imgs))
 #     # plt.imshow(imgs[0])
 #     # plt.show()
+
+# generate validation
+
+# imgs = LoadPngSet(dataset_path)
+# imgs = np.asarray(imgs)
+# img = imgs[3:31, 0:256, 0:256]
+# img = np.transpose(img, (1, 2, 0))
+# plt.imshow(img[:, :, 0])
+# plt.show()
+# print(img.shape)
+# io.savemat('D:/Data/TSA_validate/val5.mat', {'img': img})
+# img = imgs[3:31, 0:256, 256:512]
+# img = np.transpose(img, (1, 2, 0))
+# plt.imshow(img[:, :, 0])
+# plt.show()
+# print(img.shape)
+# io.savemat('D:/Data/TSA_validate/val6.mat', {'img': img})
+# img = imgs[3:31, 256:512, 0:256]
+# img = np.transpose(img, (1, 2, 0))
+# plt.imshow(img[:, :, 0])
+# plt.show()
+# print(img.shape)
+# io.savemat('D:/Data/TSA_validate/val7.mat', {'img': img})
+# img = imgs[3:31, 256:512, 256:512]
+# img = np.transpose(img, (1, 2, 0))
+# plt.imshow(img[:, :, 0])
+# plt.show()
+# print(img.shape)
+# io.savemat('D:/Data/TSA_validate/val8.mat', {'img': img})
 
 
 # Show the reconstruction results

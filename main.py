@@ -18,8 +18,8 @@ torch.backends.cudnn.benchmark = True
 if not torch.cuda.is_available():
     raise Exception('NO GPU!')
 
-training_path = "D:/Data/Data/train/"
-validating_path = "D:/Data/Data/validate/"
+training_path = "D:/Data/TSA_training_data/"
+validating_path = "D:/Data/TSA_validate/"
 mask_path = "../Data/"
 
 batch_size = 2
@@ -62,25 +62,23 @@ def train(epoch, logger):
 
 def validate(epoch, logger):
     psnr_list, ssim_list = [], []
-    val_num = int(len(validating_set)/batch_size)
-    pred = np.zeros(validating_set.shape)
-    truth = validating_set
+    val_gt = validating_set.cuda().float()
+    val_y = gen_meas_torch(val_gt, mask3d_batch, is_training=False)
     model.eval()
-    for i in range(val_num):
-        vgt_batch = validating_set[i*batch_size:(i+1)*batch_size, :, :, :]
-        vgt = vgt_batch.cuda().float()
-        vy = gen_meas_torch(vgt, mask3d_batch, is_training=False)
-        with torch.no_grad():
-            model_out= model(vy)
-        for k in range(vgt.shape[0]):
-            psnr_val = torch_psnr(model_out[k, :, :, :], vgt[k, :, :, :])
-            ssim_val = torch_ssim(model_out[k, :, :, :], vgt[k, :, :, :])
-            psnr_list.append(psnr_val.detach().cpu().numpy())
-            ssim_list.append(ssim_val.detach().cpu().numpy())
-        pred[i*batch_size:(i+1)*batch_size, :, :, :] = model_out.detach().cpu().numpy().astype(np.float32)
+    begin = time.time()
+    with torch.no_grad():
+        model_out = model(val_y)
+    end = time.time()
+    for k in range(val_gt.shape[0]):
+        psnr_val = torch_psnr(model_out[k, :, :, :], val_gt[k, :, :, :])
+        ssim_val = torch_ssim(model_out[k, :, :, :], val_gt[k, :, :, :])
+        psnr_list.append(psnr_val.detach().cpu().numpy())
+        ssim_list.append(ssim_val.detach().cpu().numpy())
+    pred = np.transpose(model_out.detach().cpu().numpy(), (0, 2, 3, 1)).astype(np.float32)
+    truth = np.transpose(val_gt.cpu().numpy(), (0, 2, 3, 1)).astype(np.float32)
     psnr_mean = np.mean(np.asarray(psnr_list))
     ssim_mean = np.mean(np.asarray(ssim_list))
-    logger.info('===> Epoch {}: validating psnr = {:.2f}, ssim = {:.3f}'.format(epoch, psnr_mean, ssim_mean))
+    logger.info('===> Epoch {}: testing psnr = {:.2f}, ssim = {:.3f}, time: {:.2f}'.format(epoch, psnr_mean, ssim_mean, (end - begin)))
     model.train()
     return (pred, truth, psnr_list, ssim_list, psnr_mean, ssim_mean)
 

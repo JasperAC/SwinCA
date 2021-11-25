@@ -35,8 +35,8 @@ class Swin_Net(nn.Module):
             resi_connection: The convolutional block before residual connection. '1conv'/'3conv'
         """
 
-    def __init__(self, img_size=128, patch_size=1, in_chans=31, out_chans=31,
-                 embed_dim=128, depths=(2, 2), num_heads=(4, 4),
+    def __init__(self, img_size=256, patch_size=1, in_chans=28, out_chans=28,
+                 embed_dim=112, depths=(2, 2, 2, 2), num_heads=(4, 4, 4, 4),
                  window_size=8, mlp_ratio=2., qkv_bias=True, qk_scale=None,
                  drop_rate=0., attn_drop_rate=0., drop_path_rate=0.1,
                  norm_layer=nn.LayerNorm, ape=False, patch_norm=True,
