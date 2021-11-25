@@ -28,10 +28,9 @@ def LoadTrain(path):
         scene_path = path + scene_list[i]
         if 'mat' not in scene_path:
             continue
-        hsi_dict = h5py.File(scene_path)
-        hsi = hsi_dict['rad']
-        hsi = hsi/np.max(hsi)
-        # hsi = hsi.astype(np.float32)
+        hsi_dict = sio.loadmat(scene_path)
+        hsi = hsi_dict['img_expand']/65536
+        hsi = hsi.astype(np.float32)
         hsi_list.append(hsi)
         print('Sence {} is loaded. {}'.format(i, scene_list[i]))
 
