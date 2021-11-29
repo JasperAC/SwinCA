@@ -566,10 +566,8 @@ class RSTB(nn.Module):
     def forward(self, x, x_size):
         x1 = self.residual_group(x, x_size)
         x2 = self.patch_unembed(x1, x_size)
-        coefficient = self.se(x2)
-        x3 = coefficient*x2
-        x4 = self.conv(x3)
-        out = self.patch_embed(x4)
+        x3 = self.conv(x2)
+        out = self.patch_embed(x3)
         return out + x
 
 

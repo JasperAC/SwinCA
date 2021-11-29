@@ -9,7 +9,7 @@ import pdb
 _NORM_BONE = False
 
 
-class Swin_Net(nn.Module):
+class SwinCA(nn.Module):
     r"""
         Args:
             img_size (int | tuple(int)): Input image size. Default 256
@@ -36,13 +36,13 @@ class Swin_Net(nn.Module):
         """
 
     def __init__(self, img_size=256, patch_size=1, in_chans=28, out_chans=28,
-                 embed_dim=112, depths=(2, 2, 2, 2), num_heads=(4, 4, 4, 4),
+                 embed_dim=84, depths=(2, 2, 2, 2), num_heads=(4, 4, 4, 4),
                  window_size=8, mlp_ratio=2., qkv_bias=True, qk_scale=None,
                  drop_rate=0., attn_drop_rate=0., drop_path_rate=0.1,
                  norm_layer=nn.LayerNorm, ape=False, patch_norm=True,
                  use_checkpoint=False , resi_connection='1conv',
                  **kwargs):
-        super(Swin_Net, self).__init__()
+        super(SwinCA, self).__init__()
 
         #####################################################################################################
         ################################### 1, shallow feature extraction ###################################
@@ -206,6 +206,11 @@ class Swin_Net(nn.Module):
         x = self.reconstruction(x)
 
         return x
+
+class ImgRecNet(nn.Module):
+    def __init__(self):
+        super(ImgRecNet, self).__init__()
+
 
 
 # class Encoder_Triblock(nn.Module):

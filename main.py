@@ -1,5 +1,6 @@
 # from dataloader import dataset
 from models import Swin_Net
+from models import ImgRecNet
 from utils import *
 # from torch.utils.data import DataLoader
 import torch.optim as optim
@@ -34,7 +35,8 @@ mask3d_batch = generate_masks(mask_path, batch_size)
 
 training_set = LoadTrain(training_path)
 validating_set = LoadTest(validating_path)
-model = Swin_Net().cuda()
+model = SwinCA().cuda()
+modelRM = ImgRecNet().cuda()
 
 if last_train != 0:
     model = torch.load('./model/' + model_save_filename + '/model_epoch_{}.pth'.format(last_train))
@@ -51,7 +53,14 @@ def train(epoch, logger):
         y = gen_meas_torch(gt, mask3d_batch, is_training=True)
         optimizer.zero_grad()
         model_out = model(y)
+        # masked_out = torch.mul(model_out, mask3d_batch)
+        # masked_gt = torch.mul(gt, mask3d_batch)
+        # Loss1 = torch.sqrt(mse(masked_out, masked_gt))
+        # modelII_out = modelRM(model_out)
+        # Loss2 = torch.sqrt(mse(modelII_out, gt))
+        # Loss = Loss1+Loss2
         Loss = torch.sqrt(mse(model_out, gt))
+
         epoch_loss += Loss.data
         Loss.backward()
         optimizer.step()
