@@ -3,24 +3,46 @@ import torch
 import torch.nn as nn
 import torch.utils.checkpoint as checkpoint
 from timm.models.layers import DropPath, to_2tuple, trunc_normal_
+from architecture.netunit import *
 
 
 
-class SE(nn.Module):
 
-    def __init__(self, in_chnls, ratio):
-        super(SE, self).__init__()
-        self.squeeze = nn.AdaptiveAvgPool2d((1, 1))
-        self.compress = nn.Conv2d(in_chnls, in_chnls//ratio, 1, 1, 0)
-        self.excitation = nn.Conv2d(in_chnls//ratio, in_chnls, 1, 1, 0)
+class ChannelAttention(nn.Module):
+
+    def __init__(self, size, num_heads, dim):
+        super(ChannelAttention, self).__init__()
+        self.size = size
+        self.num_heads = num_heads
+        self.dim = dim
+        self.conv1 = nn.Conv2d(dim, dim, 1)
+        self.conv2 = conv_block(dim, dim, 4, 2, 1, True)
+        self.conv3 = conv_block(dim, dim, 4, 2, 1, True)
+        hw = int(size[0] / 4) * int(size[1] / 4)
+        head_dim = hw // num_heads
+        self.scale = head_dim ** -0.5
+        self.linearQK = nn.Linear(hw, 2*hw)
+        self.convV = nn.Conv2d(dim, dim, 1)
+        self.proj = nn.Conv2d(dim, dim, 1)
+        self.softmax = nn.Softmax(dim=-1)
 
     def forward(self, x):
-        out = self.squeeze(x)
-        out = self.compress(out)
-        out = torch.relu(out)
-        out = self.excitation(out)
-        out = torch.sigmoid(out)
-        return out
+        B, C, H, W = x.shape
+        map1 = self.conv1(x)
+        map2 = self.conv2(map1)
+        map3 = self.conv3(map2)
+        map3 = map3.reshape(B, C, -1)
+
+        qk = self.linearQK(map3).reshape(B, C, 2, self.num_heads, -1).permute(2, 0, 3, 1, 4)
+        q, k= qk[0], qk[1]
+        q = q * self.scale
+        attn_map = (q @ k.transpose(-2, -1))
+        attn_map = self.softmax(attn_map)
+        v = self.convV(map1).reshape(B, C, self.num_heads, -1).permute(0, 2, 1, 3)
+        attn_channel = (attn_map @ v).transpose(1, 2).reshape(B, C, H, W)
+        attn_channel = self.proj(attn_channel)
+        attn_channel = attn_channel.permute(0, 2, 3, 1).reshape(B, -1, C)
+        return attn_channel
 
 
 class Mlp(nn.Module):
@@ -241,9 +263,11 @@ class SwinTransformerBlock(nn.Module):
 
 
         self.drop_path = DropPath(drop_path) if drop_path > 0. else nn.Identity()
+
         self.norm2 = norm_layer(dim)
-        mlp_hidden_dim = int(dim * mlp_ratio)
-        self.mlp = Mlp(in_features=dim, hidden_features=mlp_hidden_dim, act_layer=act_layer, drop=drop)
+        self.attnC = ChannelAttention(size=input_resolution, num_heads=num_heads, dim=dim)
+        # mlp_hidden_dim = int(dim * mlp_ratio)
+        # self.mlp = Mlp(in_features=dim, hidden_features=mlp_hidden_dim, act_layer=act_layer, drop=drop)
 
 
         if self.shift_size > 0:
@@ -323,11 +347,15 @@ class SwinTransformerBlock(nn.Module):
             x = shifted_x
         x = x.view(B, H * W, C)
 
-
-        # FFN
         x = shortcut + self.drop_path(x)
-        x = x + self.drop_path(self.mlp(self.norm2(x)))
 
+
+        # Channel Self Attention
+        xC = self.norm2(x)
+        xC = xC.transpose(1, 2).reshape(B, C, H, W).contiguous()
+        attn_channel = self.attnC(xC)
+        # x = x + self.drop_path(self.mlp(self.norm2(x)))
+        x = x + self.drop_path(attn_channel)
 
         return x
 
@@ -560,7 +588,7 @@ class RSTB(nn.Module):
             img_size=img_size, patch_size=patch_size, in_chans=0, embed_dim=dim,
             norm_layer=None)
 
-        self.se = SE(dim, 16)
+        # self.se = SE(dim, 16)
 
 
     def forward(self, x, x_size):

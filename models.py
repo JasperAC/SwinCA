@@ -36,7 +36,7 @@ class SwinCA(nn.Module):
         """
 
     def __init__(self, img_size=256, patch_size=1, in_chans=28, out_chans=28,
-                 embed_dim=84, depths=(2, 2, 2, 2), num_heads=(4, 4, 4, 4),
+                 embed_dim=56, depths=(2, 2), num_heads=(4, 4),
                  window_size=8, mlp_ratio=2., qkv_bias=True, qk_scale=None,
                  drop_rate=0., attn_drop_rate=0., drop_path_rate=0.1,
                  norm_layer=nn.LayerNorm, ape=False, patch_norm=True,
@@ -136,11 +136,11 @@ class SwinCA(nn.Module):
         # self.tconv_up2 = Decoder_Triblock(256, 128)
         # self.tconv_up1 = Decoder_Triblock(128, 64)
         self.reconstruction = nn.Sequential(
-            nn.Conv2d(embed_dim, embed_dim//2, 3, 1, 1),
-            nn.LeakyReLU(inplace=True),
-            conv_block(embed_dim//2, embed_dim//4),
-            nn.Conv2d(embed_dim//4, out_chans, 1),
-            nn.Sigmoid()
+            nn.Conv2d(embed_dim, out_chans, 3, 1, 1),
+            # nn.LeakyReLU(inplace=True),
+            # conv_block(embed_dim//2, embed_dim//4),
+            # nn.Conv2d(embed_dim//4, out_chans, 1),
+            # nn.Sigmoid()
         )
         self.apply(self._init_weights)
         #

@@ -1,5 +1,5 @@
 # from dataloader import dataset
-from models import Swin_Net
+from models import SwinCA
 from models import ImgRecNet
 from utils import *
 # from torch.utils.data import DataLoader
@@ -19,16 +19,16 @@ torch.backends.cudnn.benchmark = True
 if not torch.cuda.is_available():
     raise Exception('NO GPU!')
 
-training_path = "D:/Data/TSA_training_data/"
-validating_path = "D:/Data/TSA_validate/"
+training_path = "../Data/train/"
+validating_path = "../Data/validate/"
 mask_path = "../Data/"
 
-batch_size = 2
+batch_size = 1
 last_train = 0  # for finetune
 model_save_filename = ''  # for finetune
 max_epoch = 300
 learning_rate = 0.0004
-epoch_sam_num = 5000
+epoch_sam_num = 50
 batch_num = int(np.floor(epoch_sam_num / batch_size))
 
 mask3d_batch = generate_masks(mask_path, batch_size)
