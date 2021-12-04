@@ -99,10 +99,8 @@ def shuffle_crop(train_data, batch_size):
     gt_batch = torch.from_numpy(np.transpose(processed_data, (0, 3, 1, 2)))
     return gt_batch
 
-
 def gen_meas_torch(data_batch, mask3d_batch, is_training=True):
     nC = data_batch.shape[1]
-
     if is_training is False:
         [batch_size, nC, H, W] = data_batch.shape
         mask3d_batch = (mask3d_batch[0, :, :, :]).expand([batch_size, nC, H, W]).cuda().float()

@@ -140,7 +140,7 @@ class SwinCA(nn.Module):
             # nn.LeakyReLU(inplace=True),
             # conv_block(embed_dim//2, embed_dim//4),
             # nn.Conv2d(embed_dim//4, out_chans, 1),
-            # nn.Sigmoid()
+            nn.Sigmoid()
         )
         self.apply(self._init_weights)
         #
