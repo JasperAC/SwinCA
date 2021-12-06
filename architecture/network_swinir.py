@@ -266,8 +266,8 @@ class SwinTransformerBlock(nn.Module):
 
         self.norm2 = norm_layer(dim)
         self.attnC = ChannelAttention(size=input_resolution, num_heads=num_heads, dim=dim)
-        # mlp_hidden_dim = int(dim * mlp_ratio)
-        # self.mlp = Mlp(in_features=dim, hidden_features=mlp_hidden_dim, act_layer=act_layer, drop=drop)
+        mlp_hidden_dim = int(dim * mlp_ratio)
+        self.mlp = Mlp(in_features=dim, hidden_features=mlp_hidden_dim, act_layer=act_layer, drop=drop)
 
 
         if self.shift_size > 0:
@@ -351,11 +351,12 @@ class SwinTransformerBlock(nn.Module):
 
 
         # Channel Self Attention
-        xC = self.norm2(x)
-        xC = xC.transpose(1, 2).reshape(B, C, H, W).contiguous()
-        attn_channel = self.attnC(xC)
-        # x = x + self.drop_path(self.mlp(self.norm2(x)))
-        x = x + self.drop_path(attn_channel)
+        x = x + self.drop_path(self.mlp(self.norm2(x)))
+
+        # xC = self.norm2(x)
+        # xC = xC.transpose(1, 2).contiguous().view(B, C, H, W)
+        # attn_channel = self.attnC(xC)
+        # x = x + self.drop_path(attn_channel)
 
         return x
 
@@ -441,81 +442,81 @@ class PatchMerging(nn.Module):
 
 
 
-class BasicLayer(nn.Module):
-    """ A basic Swin Transformer layer for one stage.
-
-    Args:
-        dim (int): Number of input channels.
-        input_resolution (tuple[int]): Input resolution.
-        depth (int): Number of blocks.
-        num_heads (int): Number of attention heads.
-        window_size (int): Local window size.
-        mlp_ratio (float): Ratio of mlp hidden dim to embedding dim.
-        qkv_bias (bool, optional): If True, add a learnable bias to query, key, value. Default: True
-        qk_scale (float | None, optional): Override default qk scale of head_dim ** -0.5 if set.
-        drop (float, optional): Dropout rate. Default: 0.0
-        attn_drop (float, optional): Attention dropout rate. Default: 0.0
-        drop_path (float | tuple[float], optional): Stochastic depth rate. Default: 0.0
-        norm_layer (nn.Module, optional): Normalization layer. Default: nn.LayerNorm
-        downsample (nn.Module | None, optional): Downsample layer at the end of the layer. Default: None
-        use_checkpoint (bool): Whether to use checkpointing to save memory. Default: False.
-    """
-
-
-    def __init__(self, dim, input_resolution, depth, num_heads, window_size,
-                 mlp_ratio=4., qkv_bias=True, qk_scale=None, drop=0., attn_drop=0.,
-                 drop_path=0., norm_layer=nn.LayerNorm, downsample=None, use_checkpoint=False):
-
-
-        super().__init__()
-        self.dim = dim
-        self.input_resolution = input_resolution
-        self.depth = depth
-        self.use_checkpoint = use_checkpoint
-
-
-        # build blocks
-        self.blocks = nn.ModuleList([
-            SwinTransformerBlock(dim=dim, input_resolution=input_resolution,
-                                 num_heads=num_heads, window_size=window_size,
-                                 shift_size=0 if (i % 2 == 0) else window_size // 2,
-                                 mlp_ratio=mlp_ratio,
-                                 qkv_bias=qkv_bias, qk_scale=qk_scale,
-                                 drop=drop, attn_drop=attn_drop,
-                                 drop_path=drop_path[i] if isinstance(drop_path, list) else drop_path,
-                                 norm_layer=norm_layer)
-            for i in range(depth)])
-
-
-        # patch merging layer
-        if downsample is not None:
-            self.downsample = downsample(input_resolution, dim=dim, norm_layer=norm_layer)
-        else:
-            self.downsample = None
-
-
-    def forward(self, x, x_size):
-        for blk in self.blocks:
-            if self.use_checkpoint:
-                x = checkpoint.checkpoint(blk, x, x_size)
-            else:
-                x = blk(x, x_size)
-        if self.downsample is not None:
-            x = self.downsample(x)
-        return x
-
-
-    def extra_repr(self) -> str:
-        return f"dim={self.dim}, input_resolution={self.input_resolution}, depth={self.depth}"
-
-
-    def flops(self):
-        flops = 0
-        for blk in self.blocks:
-            flops += blk.flops()
-        if self.downsample is not None:
-            flops += self.downsample.flops()
-        return flops
+# class BasicLayer(nn.Module):
+#     """ A basic Swin Transformer layer for one stage.
+#
+#     Args:
+#         dim (int): Number of input channels.
+#         input_resolution (tuple[int]): Input resolution.
+#         depth (int): Number of blocks.
+#         num_heads (int): Number of attention heads.
+#         window_size (int): Local window size.
+#         mlp_ratio (float): Ratio of mlp hidden dim to embedding dim.
+#         qkv_bias (bool, optional): If True, add a learnable bias to query, key, value. Default: True
+#         qk_scale (float | None, optional): Override default qk scale of head_dim ** -0.5 if set.
+#         drop (float, optional): Dropout rate. Default: 0.0
+#         attn_drop (float, optional): Attention dropout rate. Default: 0.0
+#         drop_path (float | tuple[float], optional): Stochastic depth rate. Default: 0.0
+#         norm_layer (nn.Module, optional): Normalization layer. Default: nn.LayerNorm
+#         downsample (nn.Module | None, optional): Downsample layer at the end of the layer. Default: None
+#         use_checkpoint (bool): Whether to use checkpointing to save memory. Default: False.
+#     """
+#
+#
+#     def __init__(self, dim, input_resolution, depth, num_heads, window_size,
+#                  mlp_ratio=4., qkv_bias=True, qk_scale=None, drop=0., attn_drop=0.,
+#                  drop_path=0., norm_layer=nn.LayerNorm, downsample=None, use_checkpoint=False):
+#
+#
+#         super().__init__()
+#         self.dim = dim
+#         self.input_resolution = input_resolution
+#         self.depth = depth
+#         self.use_checkpoint = use_checkpoint
+#
+#
+#         # build blocks
+#         self.blocks = nn.ModuleList([
+#             SwinTransformerBlock(dim=dim, input_resolution=input_resolution,
+#                                  num_heads=num_heads, window_size=window_size,
+#                                  shift_size=0 if (i % 2 == 0) else window_size // 2,
+#                                  mlp_ratio=mlp_ratio,
+#                                  qkv_bias=qkv_bias, qk_scale=qk_scale,
+#                                  drop=drop, attn_drop=attn_drop,
+#                                  drop_path=drop_path[i] if isinstance(drop_path, list) else drop_path,
+#                                  norm_layer=norm_layer)
+#             for i in range(depth)])
+#
+#
+#         # patch merging layer
+#         if downsample is not None:
+#             self.downsample = downsample(input_resolution, dim=dim, norm_layer=norm_layer)
+#         else:
+#             self.downsample = None
+#
+#
+#     def forward(self, x, x_size):
+#         for blk in self.blocks:
+#             if self.use_checkpoint:
+#                 x = checkpoint.checkpoint(blk, x, x_size)
+#             else:
+#                 x = blk(x, x_size)
+#         if self.downsample is not None:
+#             x = self.downsample(x)
+#         return x
+#
+#
+#     def extra_repr(self) -> str:
+#         return f"dim={self.dim}, input_resolution={self.input_resolution}, depth={self.depth}"
+#
+#
+#     def flops(self):
+#         flops = 0
+#         for blk in self.blocks:
+#             flops += blk.flops()
+#         if self.downsample is not None:
+#             flops += self.downsample.flops()
+#         return flops
 
 
 
@@ -553,30 +554,19 @@ class RSTB(nn.Module):
 
         self.dim = dim
         self.input_resolution = input_resolution
+        self.depth = depth
 
-
-        self.residual_group = BasicLayer(dim=dim,
-                                         input_resolution=input_resolution,
-                                         depth=depth,
-                                         num_heads=num_heads,
-                                         window_size=window_size,
-                                         mlp_ratio=mlp_ratio,
-                                         qkv_bias=qkv_bias, qk_scale=qk_scale,
-                                         drop=drop, attn_drop=attn_drop,
-                                         drop_path=drop_path,
-                                         norm_layer=norm_layer,
-                                         downsample=downsample,
-                                         use_checkpoint=use_checkpoint)
-
-
-        if resi_connection == '1conv':
-            self.conv = nn.Conv2d(dim, dim, 3, 1, 1)
-        elif resi_connection == '3conv':
-            # to save parameters and memory
-            self.conv = nn.Sequential(nn.Conv2d(dim, dim // 4, 3, 1, 1), nn.LeakyReLU(negative_slope=0.2, inplace=True),
-                                      nn.Conv2d(dim // 4, dim // 4, 1, 1, 0),
-                                      nn.LeakyReLU(negative_slope=0.2, inplace=True),
-                                      nn.Conv2d(dim // 4, dim, 3, 1, 1))
+        # build blocks
+        self.blocks = nn.ModuleList([
+            SwinTransformerBlock(dim=dim, input_resolution=input_resolution,
+                                 num_heads=num_heads, window_size=window_size,
+                                 shift_size=0 if (i % 2 == 0) else window_size // 2,
+                                 mlp_ratio=mlp_ratio,
+                                 qkv_bias=qkv_bias, qk_scale=qk_scale,
+                                 drop=drop, attn_drop=attn_drop,
+                                 drop_path=drop_path[i] if isinstance(drop_path, list) else drop_path,
+                                 norm_layer=norm_layer)
+            for i in range(depth)])
 
 
         self.patch_embed = PatchEmbed(
@@ -592,10 +582,15 @@ class RSTB(nn.Module):
 
 
     def forward(self, x, x_size):
-        x1 = self.residual_group(x, x_size)
-        x2 = self.patch_unembed(x1, x_size)
-        x3 = self.conv(x2)
-        out = self.patch_embed(x3)
+
+        out = x
+        for blk in self.blocks:
+            x = blk(x, x_size)
+
+        # x1 = self.residual_group(x, x_size)
+        # x2 = self.patch_unembed(x1, x_size)
+        # x3 = self.conv(x2)
+        # out = self.patch_embed(x3)
         return out + x
 
 
